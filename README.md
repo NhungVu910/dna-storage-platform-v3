@@ -1,4 +1,4 @@
-# 🧬 DNA Data Storage Platform v2.0
+# 🧬 DNA Data Storage Platform v3.0
 
 A comprehensive, user-friendly platform for encoding, encrypting, preparing, and decoding digital data using synthetic DNA sequences. Built with Streamlit for accessible deployment and research collaboration.
 
