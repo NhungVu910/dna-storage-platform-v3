@@ -2582,7 +2582,7 @@ def render_about():
     workflow_cols = st.columns(5)
     
     workflow_steps = [
-        ("📤", "Encode", "Convert files to DNA", "#4CAF50"),
+        ("📤", "Encode", "Convert files to DNA with Smart compression", "#4CAF50"),
         ("🔀", "Randomize", "Encrypt with chaos maps", "#2196F3"),
         ("🧫", "NGS Prep", "Fragment for sequencing", "#9C27B0"),
         ("📥", "Decode", "Restore original files", "#FF9800"),
