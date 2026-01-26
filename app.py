@@ -17,14 +17,12 @@ from compression import (
     detect_file_type, compress_data, decompress_data,
     get_compression_stats, TEXT_EXTENSIONS, IMAGE_EXTENSIONS, PDF_EXTENSIONS,
     AUDIO_EXTENSIONS, VIDEO_EXTENSIONS, get_pdf_info, get_audio_info, get_audio_compression_suggestion,
-    get_video_info, get_video_compression_suggestion,
-    is_ffmpeg_available, is_ffprobe_available, get_ffmpeg_error_message
+    get_video_info, get_video_compression_suggestion
 )
 from randomization import (
     calculate_dna_characteristics, randomize_dna, derandomize_dna,
     verify_randomization, calculate_randomization_improvement,
-    ChaosSystem, get_chaos_system_info, list_chaos_systems,
-    get_chain_description, get_chain_complexity
+    ChaosSystem, get_chaos_system_info, list_chaos_systems
 )
 from comparison import (
     compare_data, format_comparison_results, detect_comparison_type
@@ -343,12 +341,6 @@ def encode_mode():
                 elif file_type == 'audio':
                     st.info("🎵 **Audio detected** - Choose compression method")
                     
-                    # Check ffmpeg availability
-                    if not is_ffmpeg_available():
-                        st.error("⚠️ **FFmpeg not available!** Audio compression requires FFmpeg. "
-                                "For Streamlit Cloud, add `ffmpeg` to your `packages.txt` file.")
-                        st.warning("Audio will be encoded without compression.")
-                    
                     # Show audio info
                     audio_info = get_audio_info(file_data)
                     
@@ -494,12 +486,6 @@ def encode_mode():
                 elif file_type == 'video':
                     st.info("🎬 **Video detected** - Choose compression method")
                     
-                    # Check ffmpeg availability
-                    if not is_ffmpeg_available():
-                        st.error("⚠️ **FFmpeg not available!** Video compression requires FFmpeg. "
-                                "For Streamlit Cloud, add `ffmpeg` to your `packages.txt` file.")
-                        st.warning("Video will be encoded without compression.")
-                    
                     # Show video info
                     video_info = get_video_info(file_data)
                     
@@ -633,7 +619,35 @@ def encode_mode():
                 st.write(f"**File:** {filename}")
                 st.write(f"**Size:** {len(file_data):,} bytes")
                 st.write(f"**Type:** {file_type.title()}")
-                st.write(f"**Compression:** {compression_option}")
+                # Show specific compression type
+                if compression_option == "None":
+                    compression_display = "None"
+                else:
+                    # Determine specific compression based on file type
+                    if file_type == 'text' or file_type == 'binary':
+                        compression_display = f"Brotli (Quality {brotli_quality})"
+                    elif file_type == 'image':
+                        compression_display = f"WebP (Quality {webp_quality})"
+                    elif file_type == 'pdf':
+                        if pdf_method_code == 'pdf_opt':
+                            compression_display = "PDF Object Optimization (Lossless)"
+                        else:
+                            compression_display = f"PDF Image Downsampling ({pdf_image_dpi} DPI)"
+                    elif file_type == 'audio':
+                        if audio_method_code == 'flac':
+                            compression_display = "FLAC (Lossless)"
+                        elif audio_method_code == 'aac':
+                            compression_display = f"AAC ({audio_bitrate} kbps)"
+                        else:
+                            compression_display = f"MP3 ({audio_bitrate} kbps)"
+                    elif file_type == 'video':
+                        if video_method_code == 'h264':
+                            compression_display = f"H.264 (CRF {video_crf}, {video_preset})"
+                        else:
+                            compression_display = f"AV1 (CRF {video_crf}, {video_preset})"
+                    else:
+                        compression_display = "Brotli (Default)"
+                st.write(f"**Compression:** {compression_display}")
                 st.write("**Metadata:** Embedded in DNA sequence")
             
             if st.button("🚀 Start Encoding", type="primary", use_container_width=True):
@@ -785,7 +799,7 @@ def encode_mode():
 def randomization_mode():
     """Randomization mode: Apply chaos map to DNA sequence."""
     st.header("🔀 Randomization Mode")
-    st.markdown("Apply chaos map to randomize and secure DNA sequences.")
+    st.markdown("Apply Henon chaos map randomization to improve DNA sequence characteristics.")
     
     col1, col2 = st.columns([1, 1])
     
@@ -841,116 +855,53 @@ def randomization_mode():
             st.markdown("##### ⚙️ Randomization Options")
             
             randomization_option = st.radio(
-                "Randomization Method",
-                options=["None", "Chaos Map"],
+                "Randomization",
+                options=["None", "Apply Randomization"],
                 horizontal=True
             )
             
             forward_primer = ""
             reverse_primer = ""
-            selected_systems = []
+            selected_system = ChaosSystem.HENON  # Default
             
-            if randomization_option == "Chaos Map":
-                st.info("🔐 **Chaos Map Encryption** uses primer sequences as keys. Chain multiple systems for enhanced security!")
+            if randomization_option == "Apply Randomization":
+                st.info("🔐 **Chaos Map Encryption** uses primer sequences as keys. This method is error-tolerant - safe for NGS workflows!")
                 
-                # Mode selection: Single or Multi
-                chain_mode = st.radio(
-                    "Mode",
-                    options=["Single System", "Multi-System Chain"],
-                    horizontal=True,
-                    help="Chain multiple chaos systems for stronger randomization"
+                # Chaos system selection
+                chaos_options = {
+                    "Logistic Map (1D - Simple)": ChaosSystem.LOGISTIC,
+                    "Hénon Map (2D - Medium)": ChaosSystem.HENON,
+                    "Lorenz System (3D - Complex)": ChaosSystem.LORENZ
+                }
+                
+                selected_system_name = st.selectbox(
+                    "Chaos System",
+                    options=list(chaos_options.keys()),
+                    index=1,  # Default to Hénon
+                    help="Choose chaotic system complexity: Simple → Medium → Complex"
                 )
+                selected_system = chaos_options[selected_system_name]
                 
-                if chain_mode == "Single System":
-                    # Single system selection
-                    chaos_options = {
-                        "Logistic Map (1D - Simple)": ChaosSystem.LOGISTIC,
-                        "Hénon Map (2D - Medium)": ChaosSystem.HENON,
-                        "Lorenz System (3D - Complex)": ChaosSystem.LORENZ
-                    }
-                    
-                    selected_system_name = st.selectbox(
-                        "Chaos System",
-                        options=list(chaos_options.keys()),
-                        index=1,  # Default to Hénon
-                        help="Choose chaotic system complexity: Simple → Medium → Complex"
-                    )
-                    selected_systems = [chaos_options[selected_system_name]]
-                    
-                    # Show system info
-                    system_info = get_chaos_system_info(selected_systems[0])
-                    with st.expander("ℹ️ System Details", expanded=False):
-                        st.markdown(f"**{system_info['name']}** ({system_info['dimensions']}D)")
-                        st.markdown(f"*Complexity:* {system_info['complexity']}")
-                        st.markdown(f"*Equation:* `{system_info['equation']}`")
-                        st.markdown(f"*Description:* {system_info['description']}")
-                
-                else:  # Multi-System Chain
-                    st.markdown("**Select systems to chain** (order: top to bottom)")
-                    
-                    # Checkboxes for each system
-                    col_a, col_b, col_c = st.columns(3)
-                    
-                    with col_a:
-                        use_logistic = st.checkbox(
-                            "1️⃣ Logistic Map",
-                            value=True,
-                            help="1D - Simplest system"
-                        )
-                    
-                    with col_b:
-                        use_henon = st.checkbox(
-                            "2️⃣ Hénon Map",
-                            value=True,
-                            help="2D - Medium complexity"
-                        )
-                    
-                    with col_c:
-                        use_lorenz = st.checkbox(
-                            "3️⃣ Lorenz System",
-                            value=True,
-                            help="3D - Most complex"
-                        )
-                    
-                    # Build system chain in order
-                    if use_logistic:
-                        selected_systems.append(ChaosSystem.LOGISTIC)
-                    if use_henon:
-                        selected_systems.append(ChaosSystem.HENON)
-                    if use_lorenz:
-                        selected_systems.append(ChaosSystem.LORENZ)
-                    
-                    if selected_systems:
-                        # Show chain info
-                        chain_info = get_chain_complexity(selected_systems)
-                        
-                        st.markdown("---")
-                        st.markdown(f"**Chain:** {chain_info['description']}")
-                        
-                        col_x, col_y, col_z = st.columns(3)
-                        with col_x:
-                            st.metric("Systems", chain_info['num_systems'])
-                        with col_y:
-                            st.metric("Total Layers", chain_info['total_layers'])
-                        with col_z:
-                            st.metric("Dimensions", f"{chain_info['total_dimensions']}D")
-                        
-                        st.caption(f"🔒 Security Level: **{chain_info['complexity']}**")
-                    else:
-                        st.warning("⚠️ Please select at least one chaos system")
+                # Show system info
+                system_info = get_chaos_system_info(selected_system)
+                with st.expander("ℹ️ System Details", expanded=False):
+                    st.markdown(f"**{system_info['name']}** ({system_info['dimensions']}D)")
+                    st.markdown(f"*Complexity:* {system_info['complexity']}")
+                    st.markdown(f"*Equation:* `{system_info['equation']}`")
+                    st.markdown(f"*Description:* {system_info['description']}")
                 
                 st.markdown("---")
                 
                 forward_primer = st.text_input(
-                    "Forward Primer (Key 1 - 20 nt)",
-                    value="ACACGACGCTCTTCCGATCT",
+                    "Forward Primer (Key 1)",
+                    value="ATGCATGCATGC",
                     help="DNA sequence used as part of the encryption key",
                     max_chars=50
                 )
                 
                 reverse_primer = st.text_input(
-                    "Reverse Primer (Key 2 - 21nt)", 
-                    value="AGATCGGAAGAGCACACGTCT",
+                    "Reverse Primer (Key 2)", 
+                    value="GCTAGCTAGCTA",
                     help="DNA sequence used as part of the encryption key",
                     max_chars=50
                 )
@@ -966,32 +917,30 @@ def randomization_mode():
             if st.button("🔀 Apply Randomization", type="primary", use_container_width=True):
                 if randomization_option == "None":
                     st.session_state.randomized_dna = dna_sequence
-                    st.session_state.chaos_systems = None
+                    st.session_state.chaos_system = None
                     st.success("✅ No randomization applied. DNA sequence passed through.")
                 else:
                     if not forward_primer or not reverse_primer:
                         st.error("❌ Please enter both primer sequences")
-                    elif not selected_systems:
-                        st.error("❌ Please select at least one chaos system")
                     else:
-                        chain_desc = get_chain_description(selected_systems)
-                        with st.spinner(f"Applying {chain_desc} scrambling..."):
+                        system_info = get_chaos_system_info(selected_system)
+                        with st.spinner(f"Applying {system_info['name']} scrambling..."):
                             randomized = randomize_dna(
                                 dna_sequence, 
                                 forward_primer, 
                                 reverse_primer, 
-                                systems=selected_systems
+                                system=selected_system
                             )
                             st.session_state.randomized_dna = randomized
                             
-                            # Store primers and systems for decode reference
+                            # Store primers and system for decode reference
                             st.session_state.randomization_primers = {
                                 'forward': forward_primer.upper(),
                                 'reverse': reverse_primer.upper()
                             }
-                            st.session_state.chaos_systems = selected_systems
+                            st.session_state.chaos_system = selected_system
                             
-                            st.success("✅ Randomization completed!")
+                            st.success(f"✅ Randomization completed!")
     
     with col2:
         st.subheader("📤 Output")
@@ -1082,30 +1031,30 @@ def decode_mode():
         if dna_sequence:
             st.markdown("---")
             
-            # Re-randomization option
-            st.markdown("##### 🔓 Re-randomization (Decryption)")
+            # De-randomization option
+            st.markdown("##### 🔓 De-randomization (Decryption)")
             
             was_randomized = st.checkbox(
-                "Sequence was randomized with Chaos Map",
+                "Sequence was randomized",
                 value=hasattr(st.session_state, 'randomization_primers')
             )
             
             forward_primer = ""
             reverse_primer = ""
-            decode_systems = []
+            decode_system = ChaosSystem.HENON  # Default
             
             if was_randomized:
-                st.info("🔐 Enter the same primer sequences and chaos system(s) used during randomization")
+                st.info("🔐 Enter the same primers and chaos system used during randomization")
                 
                 # Pre-fill if available
                 default_forward = ""
                 default_reverse = ""
-                default_systems = None
+                default_system = None
                 if hasattr(st.session_state, 'randomization_primers'):
                     default_forward = st.session_state.randomization_primers.get('forward', '')
                     default_reverse = st.session_state.randomization_primers.get('reverse', '')
-                if hasattr(st.session_state, 'chaos_systems') and st.session_state.chaos_systems:
-                    default_systems = st.session_state.chaos_systems
+                if hasattr(st.session_state, 'chaos_system') and st.session_state.chaos_system:
+                    default_system = st.session_state.chaos_system
                 
                 forward_primer = st.text_input(
                     "Forward Primer (Key 1)",
@@ -1119,83 +1068,30 @@ def decode_mode():
                     key="decode_reverse"
                 )
                 
-                # Mode selection for decode
-                decode_chain_mode = st.radio(
-                    "Decryption Mode",
-                    options=["Single System", "Multi-System Chain"],
-                    horizontal=True,
-                    index=1 if (default_systems and len(default_systems) > 1) else 0,
-                    key="decode_chain_mode"
-                )
-                
-                if decode_chain_mode == "Single System":
-                    # Determine default index
-                    default_idx = 1  # Default to Hénon
-                    if default_systems and len(default_systems) == 1:
-                        system_to_idx = {
-                            ChaosSystem.LOGISTIC: 0,
-                            ChaosSystem.HENON: 1,
-                            ChaosSystem.LORENZ: 2
-                        }
-                        default_idx = system_to_idx.get(default_systems[0], 1)
-                    
-                    decode_chaos_options = {
-                        "Logistic Map (1D - Simple)": ChaosSystem.LOGISTIC,
-                        "Hénon Map (2D - Medium)": ChaosSystem.HENON,
-                        "Lorenz System (3D - Complex)": ChaosSystem.LORENZ
+                # Determine default index
+                default_idx = 1  # Default to Hénon
+                if default_system:
+                    system_to_idx = {
+                        ChaosSystem.LOGISTIC: 0,
+                        ChaosSystem.HENON: 1,
+                        ChaosSystem.LORENZ: 2
                     }
-                    
-                    decode_system_name = st.selectbox(
-                        "Chaos System Used",
-                        options=list(decode_chaos_options.keys()),
-                        index=default_idx,
-                        help="Must match the system used during randomization",
-                        key="decode_chaos_system"
-                    )
-                    decode_systems = [decode_chaos_options[decode_system_name]]
+                    default_idx = system_to_idx.get(default_system, 1)
                 
-                else:  # Multi-System Chain
-                    st.markdown("**Select the same systems used during randomization:**")
-                    
-                    # Determine defaults
-                    default_logistic = default_systems and ChaosSystem.LOGISTIC in default_systems
-                    default_henon = default_systems and ChaosSystem.HENON in default_systems
-                    default_lorenz = default_systems and ChaosSystem.LORENZ in default_systems
-                    
-                    col_a, col_b, col_c = st.columns(3)
-                    
-                    with col_a:
-                        decode_use_logistic = st.checkbox(
-                            "1️⃣ Logistic",
-                            value=default_logistic,
-                            key="decode_logistic"
-                        )
-                    
-                    with col_b:
-                        decode_use_henon = st.checkbox(
-                            "2️⃣ Hénon",
-                            value=default_henon,
-                            key="decode_henon"
-                        )
-                    
-                    with col_c:
-                        decode_use_lorenz = st.checkbox(
-                            "3️⃣ Lorenz",
-                            value=default_lorenz,
-                            key="decode_lorenz"
-                        )
-                    
-                    # Build system chain in order
-                    if decode_use_logistic:
-                        decode_systems.append(ChaosSystem.LOGISTIC)
-                    if decode_use_henon:
-                        decode_systems.append(ChaosSystem.HENON)
-                    if decode_use_lorenz:
-                        decode_systems.append(ChaosSystem.LORENZ)
-                    
-                    if decode_systems:
-                        chain_desc = get_chain_description(decode_systems)
-                        st.caption(f"🔓 Chain: **{chain_desc}**")
+                decode_chaos_options = {
+                    "Logistic Map (1D - Simple)": ChaosSystem.LOGISTIC,
+                    "Hénon Map (2D - Medium)": ChaosSystem.HENON,
+                    "Lorenz System (3D - Complex)": ChaosSystem.LORENZ
+                }
+                
+                decode_system_name = st.selectbox(
+                    "Chaos System Used",
+                    options=list(decode_chaos_options.keys()),
+                    index=default_idx,
+                    help="Must match the system used during randomization",
+                    key="decode_chaos_system"
+                )
+                decode_system = decode_chaos_options[decode_system_name]
             
             st.markdown("---")
             
@@ -1204,12 +1100,12 @@ def decode_mode():
                 with st.spinner("Decoding in progress..."):
                     try:
                         # Apply de-randomization if needed
-                        if was_randomized and forward_primer and reverse_primer and decode_systems:
+                        if was_randomized and forward_primer and reverse_primer:
                             dna_to_decode = derandomize_dna(
                                 dna_sequence, 
                                 forward_primer, 
                                 reverse_primer, 
-                                systems=decode_systems
+                                system=decode_system
                             )
                         else:
                             dna_to_decode = dna_sequence
@@ -2523,13 +2419,13 @@ def create_ngs_fasta(fragments: list) -> str:
 
 
 def guide_mode():
-    """Guide mode: Instructions, Examples, and Help sections."""
+    """Guide mode: Instructions and Help sections."""
     st.header("📚 Guide")
     
     # Section selector with radio buttons for clear navigation
     guide_section = st.radio(
         "Select Section",
-        options=["ℹ️ About", "📖 Instructions", "🧪 Examples", "❓ Help"],
+        options=["ℹ️ About", "📖 Instructions", "❓ Help"],
         horizontal=True,
         label_visibility="collapsed"
     )
@@ -2540,8 +2436,6 @@ def guide_mode():
         render_about()
     elif guide_section == "📖 Instructions":
         render_instructions()
-    elif guide_section == "🧪 Examples":
-        render_examples()
     else:  # Help
         render_help()
 
@@ -2582,7 +2476,7 @@ def render_about():
     workflow_cols = st.columns(5)
     
     workflow_steps = [
-        ("📤", "Encode", "Convert files to DNA with Smart compression", "#4CAF50"),
+        ("📤", "Encode", "Convert files to DNA", "#4CAF50"),
         ("🔀", "Randomize", "Encrypt with chaos maps", "#2196F3"),
         ("🧫", "NGS Prep", "Fragment for sequencing", "#9C27B0"),
         ("📥", "Decode", "Restore original files", "#FF9800"),
@@ -2708,7 +2602,7 @@ def render_encode_instructions():
     st.markdown("""
     | Category | File Types | Compression Algorithm | Compression Type | Typical Ratio |
     |----------|------------|----------------------|------------------|---------------|
-    | **1. Text/Binary** | .txt, .csv, .json, .xml, .html, .md, .py, .js, .c, .cpp, .java, .log, .dat, .bin, .docx | Brotli | Lossless | 2-10x |
+    | **1. Text/Binary** | .txt, .csv, .json, .xml, .html, .md, .py, .js, .c, .cpp, .java, .log, .dat, .bin | Brotli | Lossless | 2-10x |
     | **2. PDF** | .pdf | PDF Optimization (Ghostscript) | Mixed (lossless text, lossy images) | 1.5-3x |
     | **3. Image** | .png, .jpg, .jpeg, .bmp, .gif, .tiff, .webp, .ico | WebP | Lossy (configurable quality 1-100) | 5-20x |
     | **4. Audio** | .wav, .mp3, .flac, .aac, .ogg, .m4a, .aiff, .wma | FLAC (lossless) / AAC / MP3 (lossy) | Lossless or Lossy (selectable) | 2-10x |
@@ -2749,7 +2643,7 @@ def render_randomization_instructions():
         {
             "num": "4",
             "title": "Configure Chaos System",
-            "desc": "Choose Single System (Logistic, Hénon, or Lorenz) or Multi-System Chain for enhanced security.",
+            "desc": "Choose chaos system: Logistic (1D), Hénon (2D), or Lorenz (3D) based on desired complexity.",
             "icon": "⚙️"
         },
         {
@@ -3561,7 +3455,6 @@ def render_encryption_help():
     
     - **Forward Primer:** Seeds the chaos system initial conditions
     - **Reverse Primer:** Additional entropy for enhanced security
-    - **Multi-System Chain:** Applies multiple chaos systems in sequence
     
     ⚠️ **Store your primers safely!** Without the exact primers and chaos settings, 
     your encrypted data cannot be recovered.
@@ -3755,11 +3648,10 @@ def render_troubleshooting_help():
         **Possible causes:**
         1. Wrong primer sequences entered
         2. Wrong chaos system selected
-        3. Wrong chain order (for multi-system)
         
         **Solutions:**
         - Double-check forward and reverse primer sequences
-        - Verify the exact chaos system configuration used
+        - Verify the exact chaos system used during randomization
         - Ensure primers are entered in the correct order
         
         ⚠️ **Note:** Without the correct keys, recovery is mathematically impossible.
