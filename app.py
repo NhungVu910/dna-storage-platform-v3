@@ -799,7 +799,7 @@ def encode_mode():
 def randomization_mode():
     """Randomization mode: Apply chaos map to DNA sequence."""
     st.header("🔀 Randomization Mode")
-    st.markdown("Apply Henon chaos map randomization to improve DNA sequence characteristics.")
+    st.markdown("Apply chaos map to randomise and secure DNA sequence.")
     
     col1, col2 = st.columns([1, 1])
     
