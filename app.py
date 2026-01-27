@@ -865,7 +865,7 @@ def randomization_mode():
             selected_system = ChaosSystem.HENON  # Default
             
             if randomization_option == "Apply Randomization":
-                st.info("🔐 **Chaos Map Encryption** uses primer sequences as keys. This method is error-tolerant - safe for NGS workflows!")
+                st.info("🔐 **Chaos Map Encryption** uses primer sequences as keys.")
                 
                 # Chaos system selection
                 chaos_options = {
@@ -894,14 +894,14 @@ def randomization_mode():
                 
                 forward_primer = st.text_input(
                     "Forward Primer (Key 1)",
-                    value="ATGCATGCATGC",
+                    value="ACACGACGCTCTTCCGATCT",
                     help="DNA sequence used as part of the encryption key",
                     max_chars=50
                 )
                 
                 reverse_primer = st.text_input(
                     "Reverse Primer (Key 2)", 
-                    value="GCTAGCTAGCTA",
+                    value="AGATCGGAAGAGCACACGTCT",
                     help="DNA sequence used as part of the encryption key",
                     max_chars=50
                 )
