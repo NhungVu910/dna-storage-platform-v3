@@ -31,7 +31,7 @@ from comparison import (
 
 # Page configuration
 st.set_page_config(
-    page_title="DNA Data Storage Platform",
+    page_title="DNA Data Storage Platform v2",
     page_icon="🧬",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -128,7 +128,7 @@ def main():
     init_session_state()
     
     # Header
-    st.markdown('<h1 class="main-header">🧬 DNA Data Storage Platform</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">🧬 DNA Data Storage Platform v2</h1>', unsafe_allow_html=True)
     st.markdown('<p style="text-align: center; color: #666; margin-bottom: 2rem;">Store any data format in DNA sequences with compression, randomization, and NGS preparation</p>', unsafe_allow_html=True)
     
     # Mode selection tabs
@@ -162,7 +162,7 @@ def main():
     # Footer
     st.markdown("---")
     st.markdown(
-        '<p style="text-align: center; color: #888;">DNA Data Storage Platform v1.0 | '
+        '<p style="text-align: center; color: #888;">DNA Data Storage Platform v2.0 | '
         'Encoding density: 2 bits/nucleotide</p>', 
         unsafe_allow_html=True
     )
