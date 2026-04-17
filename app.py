@@ -3290,6 +3290,21 @@ Binary  →  DNA
     with adv_cols[2]:
         st.warning("**🔌 Energy**  \nNo power needed for long-term storage")
 
+    st.markdown("#### 📬 Contact Information")
+    
+    contact_cols = st.columns(2)
+    with contact_cols[0]:
+        st.markdown("""
+        **Dr. Vu Thi Hong Nhung**  
+        Sungkyunkwan University, Republic of Korea  
+        📧 [nhungvu910@gmail.com](mailto:nhungvu910@gmail.com)
+        """)
+    with contact_cols[1]:
+        st.markdown("""
+        **Prof. Sung Ha Park**  
+        Sungkyunkwan University, Republic of Korea  
+        📧 [sunghapark@skku.edu](mailto:sunghapark@skku.edu)
+        """)
 
 def render_filetypes_help():
     """Supported file types help."""
